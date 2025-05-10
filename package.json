@@ -1,0 +1,10 @@
+{
+  "name": "com.arcadian.arcsheets",
+  "version": "0.1.0",
+  "displayName": "ArcSheets",
+  "description": "Manage groups of Unity's ScriptableObject assets at once.",
+  "keywords": ["unity", "package"],
+  "dependencies": {
+
+  }
+}
