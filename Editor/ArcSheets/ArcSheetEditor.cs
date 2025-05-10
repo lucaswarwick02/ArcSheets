@@ -24,7 +24,15 @@ public class ArcSheetEditor : Editor
             .ToArray();
 
         ArcSheet sheet = (ArcSheet)target;
-        _index = Array.IndexOf(_typeNames, sheet.type.FullName);
+
+        if (sheet.type == null)
+        {
+            _index = -1;
+        }
+        else
+        {
+            _index = Array.IndexOf(_typeNames, sheet.type.FullName);
+        }
     }
 
     public override void OnInspectorGUI()
