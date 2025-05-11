@@ -1,4 +1,5 @@
-using System;
+using System.Linq;
+using System.Reflection;
 using ArcSheets;
 using UnityEditor;
 using UnityEngine;
@@ -7,12 +8,17 @@ public class ArcSheetWindow : EditorWindow
 {
     private ArcSheet _sheet;
     private Vector2 _scroll;
+    private FieldInfo[] _fieldInfos;
     private ScriptableObject _selectedEntry;
 
     public static void Open(ArcSheet sheet)
     {
         var window = GetWindow<ArcSheetWindow>(sheet.name);
         window._sheet = sheet;
+        window._fieldInfos = TypeExtensions.ToType(sheet.type).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            .Where(f => f.IsPublic || f.GetCustomAttribute<SerializeField>() != null)
+            .OrderBy(f => f.MetadataToken)
+            .ToArray();
         window.Show();
 
         var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.arcadian.ArcSheets/Editor/Icons/sample.png");
@@ -27,10 +33,12 @@ public class ArcSheetWindow : EditorWindow
             return;
         }
 
+        // Header
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
         if (GUILayout.Button("Add new Entry", EditorStyles.toolbarButton))
         {
             var entry = CreateInstance(_sheet.type);
+            entry.name = _sheet.type;
             _sheet.entries.Add(entry);
             AssetDatabase.AddObjectToAsset(entry, _sheet);
             EditorUtility.SetDirty(_sheet);
@@ -38,6 +46,7 @@ public class ArcSheetWindow : EditorWindow
             AssetDatabase.SaveAssets();
         }
 
+        // Handle removing an entry
         using (new EditorGUI.DisabledScope(_selectedEntry == null))
         {
             if (GUILayout.Button("Removed Selected", EditorStyles.toolbarButton))
@@ -51,6 +60,9 @@ public class ArcSheetWindow : EditorWindow
 
         EditorGUILayout.EndHorizontal();
 
+        // Table Headers
+        RenderTableHeader();
+
         _scroll = EditorGUILayout.BeginScrollView(_scroll);
 
         foreach (var entry in _sheet.entries)
@@ -60,21 +72,82 @@ public class ArcSheetWindow : EditorWindow
                 continue;
             }
 
-            GUI.backgroundColor = entry == _selectedEntry ? Color.cyan : Color.white;
-            EditorGUILayout.BeginVertical("box");
+            SerializedObject so = new(entry);
 
-            if (GUILayout.Button(entry.name ?? entry.GetType().Name, EditorStyles.boldLabel))
+            // Render the entry as a row
+            RenderTableRow(entry, entry.name ?? _sheet.type, entry == _selectedEntry);
+
+            if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
             {
                 _selectedEntry = entry;
+                GUI.FocusControl(null);
             }
 
-            Editor editor = Editor.CreateEditor(entry);
-            editor.OnInspectorGUI();
+        }
 
-            EditorGUILayout.EndVertical();
+        EditorGUILayout.EndScrollView();
+    }
+
+    /// <summary>
+    /// Render the header of the table to show the field names.
+    /// </summary>
+    private void RenderTableHeader()
+    {
+        EditorGUILayout.BeginHorizontal("box");
+        EditorGUILayout.LabelField("Name", EditorStyles.boldLabel);
+
+        foreach (var field in _fieldInfos)
+        {
+            EditorGUILayout.LabelField(field.Name, EditorStyles.boldLabel);
+        }
+        EditorGUILayout.EndHorizontal();
+    }
+
+    /// <summary>
+    /// Render an entry (ScriptableObject) as an editable row.
+    /// </summary>
+    /// <param name="serializedObject">Serialized version of the entry</param>
+    /// <param name="scriptableObject">The entry</param>
+    /// <param name="props">All properties of the entry</param>
+    /// <param name="rowName">Name of the row (name of the entry)</param>
+    /// <param name="isSelected">Is the row selected?</param>
+    private void RenderTableRow(ScriptableObject entry, string rowName, bool isSelected)
+    {
+        // Setup types
+        SerializedObject so = new(entry);
+        var props = _fieldInfos.Select(f => so.FindProperty(f.Name)).ToArray();
+
+        // Start the row
+        EditorGUILayout.BeginHorizontal("box");
+        EditorGUILayout.LabelField(rowName);
+
+        if (isSelected)
+        {
+            GUI.backgroundColor = Color.gray;
+        }
+
+        // For each property...
+        foreach (var prop in props)
+        {
+            if (prop == null)
+            {
+                continue;
+            }
+
+            // Render 
+            EditorGUI.BeginChangeCheck();
+            prop.isExpanded = false; // suppress foldouts
+            _ = EditorGUILayout.PropertyField(prop, GUIContent.none);
+            if (EditorGUI.EndChangeCheck())
+            {
+                _ = so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(entry);
+            }
         }
 
         GUI.backgroundColor = Color.white;
-        EditorGUILayout.EndScrollView();
+
+        // End the row
+        EditorGUILayout.EndHorizontal();
     }
 }
