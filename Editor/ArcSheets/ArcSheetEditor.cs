@@ -12,16 +12,7 @@ public class ArcSheetEditor : Editor
 
     private void OnEnable()
     {
-        _typeNames = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(a => a.FullName.StartsWith("Assembly-CSharp"))
-            .SelectMany(a => a.GetTypes())
-            .Where(t =>
-                typeof(ScriptableObject).IsAssignableFrom(t) &&
-                t != typeof(ScriptableObject) &&
-                !t.IsAbstract)
-            .OrderBy(t => t.FullName)
-            .Select(t => t.FullName)
-            .ToArray();
+        _typeNames = TypeExtensions.ListUserTypes().Select(t => t.FullName).ToArray();
 
         ArcSheet sheet = (ArcSheet)target;
 
@@ -31,7 +22,7 @@ public class ArcSheetEditor : Editor
         }
         else
         {
-            _index = Array.IndexOf(_typeNames, sheet.type.FullName);
+            _index = Array.IndexOf(_typeNames, sheet.type);
         }
     }
 
@@ -45,9 +36,7 @@ public class ArcSheetEditor : Editor
         if (newIndex != _index)
         {
             _index = newIndex;
-            sheet.type = AppDomain.CurrentDomain.GetAssemblies()
-                .SelectMany(a => a.GetTypes())
-                .FirstOrDefault(t => t.FullName == _typeNames[_index]);
+            sheet.type = _typeNames[_index];
 
             sheet.entries.Clear();
             EditorUtility.SetDirty(sheet);

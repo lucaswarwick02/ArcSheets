@@ -1,5 +1,6 @@
-using System;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
 using UnityEngine;
 
 namespace ArcSheets
@@ -7,7 +8,7 @@ namespace ArcSheets
     [CreateAssetMenu(fileName = "New ArcSheet", menuName = "ArcSheet")]
     public class ArcSheet : ScriptableObject
     {
-        public Type type;
+        public string type;
 
         /// <summary>
         /// Stores the list of objects inside the ArcSheet.
