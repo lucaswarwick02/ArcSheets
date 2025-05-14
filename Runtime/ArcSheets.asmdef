@@ -1,3 +1,16 @@
 {
-	"name": "ArcSheets"
+    "name": "ArcSheets",
+    "rootNamespace": "",
+    "references": [
+        "TypeReferences"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
 }
