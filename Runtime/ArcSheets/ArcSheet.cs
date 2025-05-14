@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
-using UnityEditor;
 using UnityEngine;
 using TypeReferences;
 
@@ -9,7 +7,7 @@ namespace ArcSheets
     [CreateAssetMenu(fileName = "New ArcSheet", menuName = "ArcSheet")]
     public class ArcSheet : ScriptableObject
     {
-        public string type;
+        [Inherits(typeof(ScriptableObject), IncludeAdditionalAssemblies = new[] { "Assembly-CSharp" })] public TypeReference typeReference;
 
         /// <summary>
         /// Stores the list of objects inside the ArcSheet.

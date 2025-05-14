@@ -15,7 +15,7 @@ public class ArcSheetWindow : EditorWindow
     {
         var window = GetWindow<ArcSheetWindow>(sheet.name);
         window._sheet = sheet;
-        window._fieldInfos = TypeExtensions.ToType(sheet.type).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+        window._fieldInfos = sheet.typeReference.Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(f => f.IsPublic || f.GetCustomAttribute<SerializeField>() != null)
             .OrderBy(f => f.MetadataToken)
             .ToArray();
@@ -27,7 +27,7 @@ public class ArcSheetWindow : EditorWindow
 
     private void OnGUI()
     {
-        if (_sheet == null || _sheet.type == null)
+        if (_sheet == null || _sheet.typeReference == null)
         {
             EditorGUILayout.HelpBox("Sheet or sheet.type is not valid.", MessageType.Error);
             return;
@@ -37,8 +37,8 @@ public class ArcSheetWindow : EditorWindow
         EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
         if (GUILayout.Button("Add new Entry", EditorStyles.toolbarButton))
         {
-            var entry = CreateInstance(_sheet.type);
-            entry.name = _sheet.type;
+            var entry = CreateInstance(_sheet.typeReference.Type);
+            entry.name = _sheet.typeReference.Type.Name;
             _sheet.entries.Add(entry);
             AssetDatabase.AddObjectToAsset(entry, _sheet);
             EditorUtility.SetDirty(_sheet);
@@ -75,7 +75,7 @@ public class ArcSheetWindow : EditorWindow
             SerializedObject so = new(entry);
 
             // Render the entry as a row
-            RenderTableRow(entry, entry.name ?? _sheet.type, entry == _selectedEntry);
+            RenderTableRow(entry, entry.name ?? _sheet.typeReference.Type.Name, entry == _selectedEntry);
 
             if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
             {
