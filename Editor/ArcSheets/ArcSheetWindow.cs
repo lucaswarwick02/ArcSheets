@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ArcSheets;
@@ -20,9 +21,6 @@ public class ArcSheetWindow : EditorWindow
             .OrderBy(f => f.MetadataToken)
             .ToArray();
         window.Show();
-
-        var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.arcadian.ArcSheets/Editor/Icons/sample.png");
-        EditorGUIUtility.SetIconForObject(sheet, icon);
     }
 
     private void OnGUI()
@@ -88,66 +86,160 @@ public class ArcSheetWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    /// <summary>
-    /// Render the header of the table to show the field names.
-    /// </summary>
     private void RenderTableHeader()
     {
+        int columnCount = _fieldInfos.Length + 1;
+        float columnWidth = position.width / columnCount;
+
+        var style = new GUIStyle(EditorStyles.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontStyle = FontStyle.Bold,
+            border = new RectOffset(1, 1, 1, 1),
+            margin = new RectOffset(1, 1, 1, 1),
+            padding = new RectOffset(4, 4, 2, 2),
+            normal = { background = Texture2D.grayTexture, }
+        };
+
         EditorGUILayout.BeginHorizontal("box");
-        EditorGUILayout.LabelField("Name", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Name", style, GUILayout.Width(columnWidth));
 
         foreach (var field in _fieldInfos)
-        {
-            EditorGUILayout.LabelField(field.Name, EditorStyles.boldLabel);
-        }
+            EditorGUILayout.LabelField(field.Name, style, GUILayout.Width(columnWidth));
+
         EditorGUILayout.EndHorizontal();
     }
 
-    /// <summary>
-    /// Render an entry (ScriptableObject) as an editable row.
-    /// </summary>
-    /// <param name="serializedObject">Serialized version of the entry</param>
-    /// <param name="scriptableObject">The entry</param>
-    /// <param name="props">All properties of the entry</param>
-    /// <param name="rowName">Name of the row (name of the entry)</param>
-    /// <param name="isSelected">Is the row selected?</param>
+    // private void RenderTableRow(ScriptableObject entry, string rowName, bool isSelected)
+    // {
+    //     // Setup types
+    //     SerializedObject so = new(entry);
+    //     so.Update();
+    //     var props = _fieldInfos.Select(f => so.FindProperty(f.Name)).ToArray();
+        
+
+    //     // Start the row
+    //     EditorGUILayout.BeginHorizontal("box");
+    //     EditorGUILayout.LabelField(rowName);
+
+    //     if (isSelected)
+    //     {
+    //         GUI.backgroundColor = Color.gray;
+    //     }
+
+    //     // For each property...
+    //     foreach (var prop in props)
+    //     {
+    //         if (prop == null)
+    //         {
+    //             continue;
+    //         }
+    //         Debug.Log(prop.FindPropertyRelative(nameof(_sheet.typeReference.Type)));
+
+    //         // Render 
+    //         EditorGUI.BeginChangeCheck();
+    //         _ = EditorGUILayout.PropertyField(prop, GUIContent.none);
+    //         if (EditorGUI.EndChangeCheck())
+    //         {
+    //             _ = so.ApplyModifiedProperties();
+    //             EditorUtility.SetDirty(entry);
+    //         }
+    //     }
+
+    //     GUI.backgroundColor = Color.white;
+
+    //     // End the row
+    //     EditorGUILayout.EndHorizontal();
+    // }
+
+    private Dictionary<ScriptableObject, Dictionary<string, bool>> _expandedStates = new();
+
     private void RenderTableRow(ScriptableObject entry, string rowName, bool isSelected)
     {
-        // Setup types
-        SerializedObject so = new(entry);
-        var props = _fieldInfos.Select(f => so.FindProperty(f.Name)).ToArray();
+        var so = new SerializedObject(entry);
+        so.Update();
 
-        // Start the row
+        float columnWidth = position.width / (_fieldInfos.Length + 1);
+
+        // Start the row, add the name to begin with
         EditorGUILayout.BeginHorizontal("box");
-        EditorGUILayout.LabelField(rowName);
+        EditorGUILayout.LabelField(rowName, GUILayout.Width(columnWidth));
 
-        if (isSelected)
-        {
-            GUI.backgroundColor = Color.gray;
-        }
+        if (isSelected) GUI.backgroundColor = Color.gray;
 
-        // For each property...
-        foreach (var prop in props)
+
+        foreach (var field in _fieldInfos)
         {
-            if (prop == null)
+            var prop = so.FindProperty(field.Name);
+            if (prop == null) continue;
+
+            EditorGUILayout.BeginVertical(GUILayout.Width(columnWidth));
+
+            if (!_expandedStates.TryGetValue(entry, out var fieldStates))
             {
-                continue;
+                fieldStates = new();
+                _expandedStates[entry] = fieldStates;
             }
 
-            // Render 
-            EditorGUI.BeginChangeCheck();
-            prop.isExpanded = false; // suppress foldouts
-            _ = EditorGUILayout.PropertyField(prop, GUIContent.none);
-            if (EditorGUI.EndChangeCheck())
+            if (!fieldStates.ContainsKey(field.Name))
+                fieldStates[field.Name] = false;
+
+            if (prop.isArray && prop.propertyType != SerializedPropertyType.String)
             {
-                _ = so.ApplyModifiedProperties();
-                EditorUtility.SetDirty(entry);
+                var labelName = $"{field.Name} {(prop.arraySize == 0 ? "" : $"({prop.arraySize})")}";
+                fieldStates[field.Name] = EditorGUILayout.Foldout(fieldStates[field.Name], labelName);
+
+                if (fieldStates[field.Name])
+                {
+                    EditorGUI.indentLevel++;
+
+                    // Buttons at the top
+                    EditorGUILayout.BeginHorizontal();
+                    if (GUILayout.Button("+", GUILayout.Width(20)))
+                    {
+                        prop.arraySize++;
+                        so.ApplyModifiedProperties();
+                    }
+                    if (GUILayout.Button("-", GUILayout.Width(20)) && prop.arraySize > 0)
+                    {
+                        prop.arraySize--;
+                        so.ApplyModifiedProperties();
+                    }
+                    EditorGUILayout.EndHorizontal();
+
+                    // Then draw the items
+                    EditorGUI.BeginChangeCheck();
+
+                    for (int i = 0; i < prop.arraySize; i++)
+                    {
+                        var element = prop.GetArrayElementAtIndex(i);
+                        EditorGUILayout.PropertyField(element, GUIContent.none);
+                    }
+
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        so.ApplyModifiedProperties();
+                        EditorUtility.SetDirty(entry);
+                    }
+
+                    EditorGUI.indentLevel--;
+                }
             }
+            else
+            {
+                EditorGUI.BeginChangeCheck();
+                EditorGUILayout.PropertyField(prop, GUIContent.none, false);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    so.ApplyModifiedProperties();
+                    EditorUtility.SetDirty(entry);
+                }
+            }
+
+            EditorGUILayout.EndVertical();
         }
 
         GUI.backgroundColor = Color.white;
-
-        // End the row
         EditorGUILayout.EndHorizontal();
     }
 }
