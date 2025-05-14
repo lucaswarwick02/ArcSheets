@@ -3,8 +3,22 @@
   "version": "0.1.0",
   "displayName": "ArcSheets",
   "description": "Manage groups of Unity's ScriptableObject assets at once.",
-  "keywords": ["unity", "package"],
+  "keywords": [
+    "unity",
+    "package"
+  ],
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.solidalloy",
+        "com.openupm",
+        "org.nuget"
+      ]
+    }
+  ],
   "dependencies": {
-
+    "com.solidalloy.type-references": "2.15.1"
   }
 }
