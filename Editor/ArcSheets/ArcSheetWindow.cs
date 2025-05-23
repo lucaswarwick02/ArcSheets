@@ -34,7 +34,15 @@ public class ArcSheetWindow : EditorWindow
         
         if (allowDelete)
         {
-            columns.Add(new MultiColumnHeaderState.Column{ headerContent = new GUIContent("Delete"), width = 150, autoResize = true });
+            columns.Add(new MultiColumnHeaderState.Column                     
+            {
+                headerContent = new GUIContent("Delete"),
+                width = 100,
+                autoResize = true,
+                canSort = true,
+                sortingArrowAlignment = TextAlignment.Right,
+                headerTextAlignment = TextAlignment.Left,
+            });
         }
         
         multiColumnHeaderState = new MultiColumnHeaderState(columns.ToArray());
