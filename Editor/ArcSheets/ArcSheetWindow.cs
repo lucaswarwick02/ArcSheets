@@ -1,8 +1,8 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using ArcSheets;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
 public class ArcSheetWindow : EditorWindow
@@ -10,7 +10,11 @@ public class ArcSheetWindow : EditorWindow
     private ArcSheet _sheet;
     private Vector2 _scroll;
     private FieldInfo[] _fieldInfos;
-    private ScriptableObject _selectedEntry;
+
+    private MultiColumnHeader multiColumnHeader;
+    private MultiColumnHeaderState multiColumnHeaderState;
+
+    private const bool allowDelete = true;
 
     public static void Open(ArcSheet sheet)
     {
@@ -23,6 +27,21 @@ public class ArcSheetWindow : EditorWindow
         window.Show();
     }
 
+
+    private void InitColumnData()
+    {
+        var columns = _fieldInfos.Select(fieldInfo => new MultiColumnHeaderState.Column{ headerContent = new GUIContent(fieldInfo.Name), width = 250, autoResize = true }).ToList();
+        
+        if (allowDelete)
+        {
+            columns.Add(new MultiColumnHeaderState.Column{ headerContent = new GUIContent("Delete"), width = 150, autoResize = true });
+        }
+        
+        multiColumnHeaderState = new MultiColumnHeaderState(columns.ToArray());
+        multiColumnHeader = new MultiColumnHeader(multiColumnHeaderState);
+    }
+
+
     private void OnGUI()
     {
         if (_sheet == null || _sheet.typeReference == null)
@@ -31,215 +50,110 @@ public class ArcSheetWindow : EditorWindow
             return;
         }
 
-        // Header
-        EditorGUILayout.BeginHorizontal(EditorStyles.toolbar);
-        if (GUILayout.Button("Add new Entry", EditorStyles.toolbarButton))
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("Add New", GUILayout.Width(100)))
         {
-            var entry = CreateInstance(_sheet.typeReference.Type);
-            entry.name = _sheet.typeReference.Type.Name;
-            _sheet.entries.Add(entry);
-            AssetDatabase.AddObjectToAsset(entry, _sheet);
+            var newEntry = CreateInstance(_sheet.typeReference.Type);
+            newEntry.name = $"{_sheet.typeReference.Type.Name}_{_sheet.entries.Count}";
+
+            AssetDatabase.AddObjectToAsset(newEntry, _sheet);
+            _sheet.entries.Add(newEntry);
+
             EditorUtility.SetDirty(_sheet);
-            EditorUtility.SetDirty(entry);
             AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
+        GUILayout.EndHorizontal();
 
-        // Handle removing an entry
-        using (new EditorGUI.DisabledScope(_selectedEntry == null))
-        {
-            if (GUILayout.Button("Removed Selected", EditorStyles.toolbarButton))
-            {
-                _sheet.entries.Remove(_selectedEntry);
-                DestroyImmediate(_selectedEntry, true);
-                _selectedEntry = null;
-                AssetDatabase.SaveAssets();
-            }
-        }
+        // Slight gab between toolbar and the table
+        GUILayout.Space(10); // Add slight gap
 
-        EditorGUILayout.EndHorizontal();
+        // Initialize the columns
+        InitColumnData();
 
-        // Table Headers
-        RenderTableHeader();
+        // Draw the entire header
+        RenderHeader(multiColumnHeader);
 
         _scroll = EditorGUILayout.BeginScrollView(_scroll);
-
-        foreach (var entry in _sheet.entries)
         {
-            if (entry == null)
+            // For each entry...
+            foreach (var entry in _sheet.entries)
             {
-                continue;
-            }
-
-            SerializedObject so = new(entry);
-
-            // Render the entry as a row
-            RenderTableRow(entry, entry.name ?? _sheet.typeReference.Type.Name, entry == _selectedEntry);
-
-            if (Event.current.type == EventType.MouseDown && GUILayoutUtility.GetLastRect().Contains(Event.current.mousePosition))
-            {
-                _selectedEntry = entry;
-                GUI.FocusControl(null);
+                // Draw the row
+                RenderRow(multiColumnHeader, entry);
             }
 
         }
-
         EditorGUILayout.EndScrollView();
     }
 
-    private void RenderTableHeader()
+
+    private void RenderHeader(MultiColumnHeader multiColumnHeader)
     {
-        int columnCount = _fieldInfos.Length + 1;
-        float columnWidth = position.width / columnCount;
-
-        var style = new GUIStyle(EditorStyles.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontStyle = FontStyle.Bold,
-            border = new RectOffset(1, 1, 1, 1),
-            margin = new RectOffset(1, 1, 1, 1),
-            padding = new RectOffset(4, 4, 2, 2),
-            normal = { background = Texture2D.grayTexture, }
-        };
-
-        EditorGUILayout.BeginHorizontal("box");
-        EditorGUILayout.LabelField("Name", style, GUILayout.Width(columnWidth));
-
-        foreach (var field in _fieldInfos)
-            EditorGUILayout.LabelField(field.Name, style, GUILayout.Width(columnWidth));
-
-        EditorGUILayout.EndHorizontal();
+        Rect headerRect = GUILayoutUtility.GetRect(0, 20);
+        multiColumnHeader.OnGUI(headerRect, 0);
     }
 
-    // private void RenderTableRow(ScriptableObject entry, string rowName, bool isSelected)
-    // {
-    //     // Setup types
-    //     SerializedObject so = new(entry);
-    //     so.Update();
-    //     var props = _fieldInfos.Select(f => so.FindProperty(f.Name)).ToArray();
-        
 
-    //     // Start the row
-    //     EditorGUILayout.BeginHorizontal("box");
-    //     EditorGUILayout.LabelField(rowName);
-
-    //     if (isSelected)
-    //     {
-    //         GUI.backgroundColor = Color.gray;
-    //     }
-
-    //     // For each property...
-    //     foreach (var prop in props)
-    //     {
-    //         if (prop == null)
-    //         {
-    //             continue;
-    //         }
-    //         Debug.Log(prop.FindPropertyRelative(nameof(_sheet.typeReference.Type)));
-
-    //         // Render 
-    //         EditorGUI.BeginChangeCheck();
-    //         _ = EditorGUILayout.PropertyField(prop, GUIContent.none);
-    //         if (EditorGUI.EndChangeCheck())
-    //         {
-    //             _ = so.ApplyModifiedProperties();
-    //             EditorUtility.SetDirty(entry);
-    //         }
-    //     }
-
-    //     GUI.backgroundColor = Color.white;
-
-    //     // End the row
-    //     EditorGUILayout.EndHorizontal();
-    // }
-
-    private Dictionary<ScriptableObject, Dictionary<string, bool>> _expandedStates = new();
-
-    private void RenderTableRow(ScriptableObject entry, string rowName, bool isSelected)
+    private void RenderRow(MultiColumnHeader multiColumnHeader, ScriptableObject scriptableObject)
     {
-        var so = new SerializedObject(entry);
-        so.Update();
+        // Draw the row
+        var rowRect = GUILayoutUtility.GetRect(0, 20);
+        
+        // Get a serialized object from the SO
+        var serializedObject = new SerializedObject(scriptableObject);
+        serializedObject.Update();
 
-        float columnWidth = position.width / (_fieldInfos.Length + 1);
+        // Get each property to render
+        var properties = _fieldInfos.Select(fieldInfo => serializedObject.FindProperty(fieldInfo.Name)).ToArray();
 
-        // Start the row, add the name to begin with
-        EditorGUILayout.BeginHorizontal("box");
-        EditorGUILayout.LabelField(rowName, GUILayout.Width(columnWidth));
-
-        if (isSelected) GUI.backgroundColor = Color.gray;
-
-
-        foreach (var field in _fieldInfos)
+        for(var i = 0; i < properties.Length; i++)
         {
-            var prop = so.FindProperty(field.Name);
-            if (prop == null) continue;
-
-            EditorGUILayout.BeginVertical(GUILayout.Width(columnWidth));
-
-            if (!_expandedStates.TryGetValue(entry, out var fieldStates))
-            {
-                fieldStates = new();
-                _expandedStates[entry] = fieldStates;
-            }
-
-            if (!fieldStates.ContainsKey(field.Name))
-                fieldStates[field.Name] = false;
-
-            if (prop.isArray && prop.propertyType != SerializedPropertyType.String)
-            {
-                var labelName = $"{field.Name} {(prop.arraySize == 0 ? "" : $"({prop.arraySize})")}";
-                fieldStates[field.Name] = EditorGUILayout.Foldout(fieldStates[field.Name], labelName);
-
-                if (fieldStates[field.Name])
-                {
-                    EditorGUI.indentLevel++;
-
-                    // Buttons at the top
-                    EditorGUILayout.BeginHorizontal();
-                    if (GUILayout.Button("+", GUILayout.Width(20)))
-                    {
-                        prop.arraySize++;
-                        so.ApplyModifiedProperties();
-                    }
-                    if (GUILayout.Button("-", GUILayout.Width(20)) && prop.arraySize > 0)
-                    {
-                        prop.arraySize--;
-                        so.ApplyModifiedProperties();
-                    }
-                    EditorGUILayout.EndHorizontal();
-
-                    // Then draw the items
-                    EditorGUI.BeginChangeCheck();
-
-                    for (int i = 0; i < prop.arraySize; i++)
-                    {
-                        var element = prop.GetArrayElementAtIndex(i);
-                        EditorGUILayout.PropertyField(element, GUIContent.none);
-                    }
-
-                    if (EditorGUI.EndChangeCheck())
-                    {
-                        so.ApplyModifiedProperties();
-                        EditorUtility.SetDirty(entry);
-                    }
-
-                    EditorGUI.indentLevel--;
-                }
-            }
-            else
-            {
-                EditorGUI.BeginChangeCheck();
-                EditorGUILayout.PropertyField(prop, GUIContent.none, false);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    so.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(entry);
-                }
-            }
-
-            EditorGUILayout.EndVertical();
+            RenderCell(multiColumnHeader.GetColumnRect(i), rowRect, properties[i], serializedObject, scriptableObject);
         }
 
-        GUI.backgroundColor = Color.white;
-        EditorGUILayout.EndHorizontal();
+        if (allowDelete)
+        {
+            var cellRect = multiColumnHeader.GetColumnRect(_fieldInfos.Length);
+            cellRect.y = rowRect.y;
+            cellRect.height = rowRect.height;
+            cellRect.x += 5f;
+            cellRect.width -= 5f;
+
+            if (GUI.Button(cellRect, "Delete"))
+            {
+                _sheet.entries.Remove(scriptableObject);
+
+                EditorUtility.SetDirty(_sheet);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
+                GUIUtility.ExitGUI();
+            }
+        }
+    }
+
+
+    private void RenderCell(Rect cellRect,
+                            Rect rowRect,
+                            SerializedProperty property,
+                            SerializedObject serializedObject,
+                            ScriptableObject scriptableObject,
+                            float padding = 5f)
+    {
+        cellRect.y = rowRect.y;
+        cellRect.height = rowRect.height;
+
+        // Add padding
+        cellRect.x += padding / 2f;
+        cellRect.width -= padding;
+
+        // Render the cell (editable)
+        EditorGUI.BeginChangeCheck();
+        EditorGUI.PropertyField(cellRect, property, GUIContent.none);
+        if (EditorGUI.EndChangeCheck())
+        {
+            serializedObject.ApplyModifiedProperties();
+            EditorUtility.SetDirty(scriptableObject);
+        }
     }
 }
