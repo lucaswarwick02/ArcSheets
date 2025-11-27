@@ -4,7 +4,7 @@ using ArcSheets;
 using UnityEditor;
 
 [CustomEditor(typeof(ArcSheet))]
-public class ArcSheetEditor : Editor
+public class ArcSheetEditor : UnityEditor.Editor
 {
     public override void OnInspectorGUI()
     {
