@@ -7,10 +7,12 @@ using UnityEditor;
 
 namespace ArcSheets
 {
-    [CreateAssetMenu(fileName = "New ArcSheet", menuName = "ArcSheet")]
+    [CreateAssetMenu(fileName = "New ArcSheet", menuName = "Arcadian/ArcSheet")]
     public class ArcSheet : ScriptableObject
     {
-        [Inherits(typeof(ScriptableObject), IncludeAdditionalAssemblies = new[] { "Assembly-CSharp" })] public TypeReference typeReference;
+        // The TypeReference attribute will be handled in a custom editor to use the above list
+        [Inherits(typeof(ScriptableObject), ShowAllTypes = true)]
+        public TypeReference typeReference;
 
 #if UNITY_EDITOR
         void OnEnable()
