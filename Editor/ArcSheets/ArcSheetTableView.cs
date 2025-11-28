@@ -108,6 +108,18 @@ public class ArcSheetTableView
             canSort = false,
         });
 
+        // Up/Down reorder buttons
+        columns.Add(new MultiColumnHeaderState.Column
+        {
+            headerContent = new GUIContent(""),
+            width = 50,
+            minWidth = 50,
+            autoResize = false,
+            allowToggleVisibility = false,
+            canSort = false,
+            headerTextAlignment = TextAlignment.Center,
+        });
+
         // Delete button column
         columns.Add(new MultiColumnHeaderState.Column
         {
@@ -201,6 +213,40 @@ public class ArcSheetTableView
         }
 
         // Spacer column (no action needed)
+        colIndex++;
+
+        // Up/Down reorder buttons
+        if (_multiColumnHeader.IsColumnVisible(colIndex))
+        {
+            int visibleColIndex = _multiColumnHeader.GetVisibleColumnIndex(colIndex);
+            Rect cellRect = _multiColumnHeader.GetCellRect(visibleColIndex, rowRect);
+            
+            // Split the cell into up and down buttons
+            Rect upButtonRect = new Rect(cellRect.x, cellRect.y, cellRect.width / 2 - 1, cellRect.height);
+            Rect downButtonRect = new Rect(cellRect.x + cellRect.width / 2 + 1, cellRect.y, cellRect.width / 2 - 1, cellRect.height);
+            
+            // Up button
+            if (rowIndex > 0 && GUI.Button(upButtonRect, "↑"))
+            {
+                // Swap with previous
+                _sheet.entries[rowIndex] = _sheet.entries[rowIndex - 1];
+                _sheet.entries[rowIndex - 1] = asset;
+                EditorUtility.SetDirty(_sheet);
+                onDirty?.Invoke();
+                Rebuild();
+            }
+            
+            // Down button
+            if (rowIndex < _entries.Count - 1 && GUI.Button(downButtonRect, "↓"))
+            {
+                // Swap with next
+                _sheet.entries[rowIndex] = _sheet.entries[rowIndex + 1];
+                _sheet.entries[rowIndex + 1] = asset;
+                EditorUtility.SetDirty(_sheet);
+                onDirty?.Invoke();
+                Rebuild();
+            }
+        }
         colIndex++;
 
         // Delete button
