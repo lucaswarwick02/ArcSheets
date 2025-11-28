@@ -282,8 +282,9 @@ public class ArcSheetWindow : EditorWindow
 
     private void RenderDynamicRow(ScriptableObject asset, Rect rowRect)
     {
-        // Get all public properties dynamically
-        var publicProperties = asset.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        // Get all public properties dynamically, excluding Unity built-in properties
+        var allProperties = asset.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        var publicProperties = allProperties.Where(p => p.Name != "name" && p.Name != "hideFlags").ToArray();
         
         // Calculate column width based on number of fields (name + properties)
         int totalColumns = 1 + publicProperties.Length; // 1 for name + number of properties
@@ -323,8 +324,9 @@ public class ArcSheetWindow : EditorWindow
 
     private void RenderDynamicRowHeader(System.Type assetType, Rect rowRect)
     {
-        // Get all public properties dynamically
-        var publicProperties = assetType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        // Get all public properties dynamically, excluding Unity built-in properties
+        var allProperties = assetType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        var publicProperties = allProperties.Where(p => p.Name != "name" && p.Name != "hideFlags").ToArray();
         
         // Calculate column width based on number of fields (name + properties)
         int totalColumns = 1 + publicProperties.Length; // 1 for name + number of properties
