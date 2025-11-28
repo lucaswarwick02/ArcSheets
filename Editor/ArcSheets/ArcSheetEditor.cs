@@ -3,9 +3,15 @@ using System.Linq;
 using ArcSheets;
 using UnityEditor;
 
+/// <summary>
+/// Custom editor for ArcSheet ScriptableObject to handle type changes and entry management.
+/// </summary>
 [CustomEditor(typeof(ArcSheet))]
 public class ArcSheetEditor : UnityEditor.Editor
 {
+    /// <summary>
+    /// Override the inspector GUI to handle type changes and entry management.
+    /// </summary>
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
