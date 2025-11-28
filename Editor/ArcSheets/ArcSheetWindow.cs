@@ -9,23 +9,23 @@ using UnityEngine;
 /// Editor window for displaying and managing ArcSheet entries in a tabular format.
 /// </summary>
 public class ArcSheetWindow : EditorWindow
-{
-    private ArcSheet _sheet;
-    private Vector2 _scroll;
-    private FieldInfo[] _fieldInfos;
+    {
+        private ArcSheet _sheet;
+        private Vector2 _scroll;
+        private FieldInfo[] _fieldInfos;
+        private bool _isDirty = false;
 
-    private MultiColumnHeader multiColumnHeader;
-    private MultiColumnHeaderState multiColumnHeaderState;
+        private MultiColumnHeader multiColumnHeader;
+        private MultiColumnHeaderState multiColumnHeaderState;
 
-    private const bool allowDelete = true;
-
-    /// <summary>
+        private const bool allowDelete = true;    /// <summary>
     /// Open the ArcSheet window for a specific ArcSheet asset.
     /// </summary>
     public static void Open(ArcSheet sheet)
     {
         var window = GetWindow<ArcSheetWindow>(sheet.name);
         window._sheet = sheet;
+        window._isDirty = false;
         window._fieldInfos = sheet.typeReference.Type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
             .Where(f => f.IsPublic || f.GetCustomAttribute<SerializeField>() != null)
             .OrderBy(f => f.MetadataToken)
@@ -33,6 +33,36 @@ public class ArcSheetWindow : EditorWindow
         window.Show();
     }
 
+    private void OnDestroy()
+    {
+        if (_isDirty && _sheet != null)
+        {
+            if (EditorUtility.DisplayDialog("Unsaved Changes", "You have unsaved edits in the ArcSheet. Do you want to save them?", "Save", "Discard"))
+            {
+                SaveAllAssets();
+            }
+        }
+    }
+
+    private void SaveAllAssets()
+    {
+        if (_sheet == null)
+            return;
+
+        // Mark all entries as dirty
+        foreach (var entry in _sheet.entries)
+        {
+            if (entry != null)
+            {
+                EditorUtility.SetDirty(entry);
+            }
+        }
+
+        EditorUtility.SetDirty(_sheet);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        _isDirty = false;
+    }
 
     private void InitColumnData()
     {
@@ -80,6 +110,17 @@ public class ArcSheetWindow : EditorWindow
             return;
         }
 
+        // Handle keyboard shortcuts
+        Event currentEvent = Event.current;
+        if (currentEvent.type == EventType.KeyDown && currentEvent.control && currentEvent.keyCode == KeyCode.S)
+        {
+            if (_isDirty)
+            {
+                SaveAllAssets();
+            }
+            currentEvent.Use();
+        }
+
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Add New", GUILayout.Width(100)))
         {
@@ -93,6 +134,15 @@ public class ArcSheetWindow : EditorWindow
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
+
+        // Save button
+        GUI.backgroundColor = _isDirty ? Color.yellow : Color.white;
+        if (GUILayout.Button("Save", GUILayout.Width(100)))
+        {
+            SaveAllAssets();
+        }
+        GUI.backgroundColor = Color.white;
+
         GUILayout.EndHorizontal();
 
         // Slight gab between toolbar and the table
@@ -189,13 +239,11 @@ public class ArcSheetWindow : EditorWindow
                 // Always render dynamic row content for all assets
                 RenderDynamicRow(scriptableObject, nameCellRect);
                 
-                // If there were changes in the renderer, save them
+                // If there were changes in the renderer, mark dirty
                 if (EditorGUI.EndChangeCheck())
                 {
                     EditorUtility.SetDirty(scriptableObject);
-                    EditorUtility.SetDirty(_sheet);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
+                    _isDirty = true;
                 }
             }
             
@@ -220,8 +268,7 @@ public class ArcSheetWindow : EditorWindow
                     DestroyImmediate(scriptableObject, true);
 
                     EditorUtility.SetDirty(_sheet);
-                    AssetDatabase.SaveAssets();
-                    AssetDatabase.Refresh();
+                    _isDirty = true;
                     GUIUtility.ExitGUI();
                 }
             }
