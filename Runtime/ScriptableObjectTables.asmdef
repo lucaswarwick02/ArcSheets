@@ -1,5 +1,5 @@
 {
-    "name": "ArcSheets",
+    "name": "ScriptableObjectTables",
     "rootNamespace": "",
     "references": [
         "TypeReferences"
