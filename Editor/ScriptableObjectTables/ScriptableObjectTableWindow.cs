@@ -105,7 +105,7 @@ public class ScriptableObjectTableWindow : EditorWindow
         
         if (GUILayout.Button("Add New", GUILayout.Width(100)))
         {
-            var newEntry = CreateInstance(_table.typeReference.Type);
+            var newEntry = CreateInstance(_table.typeReference.Type) as SerializedScriptableObject;
             newEntry.name = $"{_table.typeReference.Type.Name}_{_table.entries.Count}";
 
             AssetDatabase.AddObjectToAsset(newEntry, _table);

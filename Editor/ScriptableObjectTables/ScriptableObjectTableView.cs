@@ -13,7 +13,7 @@ using UnityEngine;
 public class ScriptableObjectTableView
 {
     private ScriptableObjectTable _table;
-    private List<ScriptableObject> _entries;
+    private List<SerializedScriptableObject> _entries;
     private PropertyInfo[] _displayProperties;
     
     private MultiColumnHeaderState _multiColumnHeaderState;
@@ -38,7 +38,7 @@ public class ScriptableObjectTableView
     public ScriptableObjectTableView(ScriptableObjectTable table)
     {
         _table = table;
-        _entries = new List<ScriptableObject>();
+        _entries = new List<SerializedScriptableObject>();
         RefreshEntries();
         RefreshDisplayProperties();
         Rebuild();
@@ -46,7 +46,7 @@ public class ScriptableObjectTableView
 
     private void RefreshEntries()
     {
-        _entries = new List<ScriptableObject>(_table.entries.Where(e => e != null));
+        _entries = new List<SerializedScriptableObject>(_table.entries.Where(e => e != null));
     }
 
     private void RefreshDisplayProperties()
@@ -187,7 +187,7 @@ public class ScriptableObjectTableView
         GUI.EndScrollView(handleScrollWheel: true);
     }
 
-    private void DrawRow(Rect rowRect, ScriptableObject asset, int rowIndex)
+    private void DrawRow(Rect rowRect, SerializedScriptableObject asset, int rowIndex)
     {
         int colIndex = 0;
 

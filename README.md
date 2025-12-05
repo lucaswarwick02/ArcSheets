@@ -14,6 +14,8 @@ Managing large numbers of ScriptableObjects through the default Inspector can be
 - **Type Safety**: Automatically restricts entries to specific `ScriptableObject` types to ensure data integrity.
 - **Integrated Workflow**: Create new assets directly within the table interface without leaving the window.
 - **Persistent Configuration**: Save table layouts and asset collections as project assets.
+- **Unique Identification**: All assets extending `SerializedScriptableObject` automatically receive a persistent GUID for unique identification.
+- **GUID Lookup**: Built-in functionality to find and retrieve assets by their GUID.
 
 ## Requirements
 
@@ -40,3 +42,28 @@ This package can be installed directly via the Unity Package Manager using the G
 2. **Configure**: Select the target `ScriptableObject` type in the inspector.
 3. **Edit**: Double-click the created asset to open the **Scriptable Object Table** editor window.
 4. **Manage**: Use the toolbar to add new entries or save changes to the collection.
+
+## SerializedScriptableObject
+
+`SerializedScriptableObject` is a base class that extends Unity's `ScriptableObject` and provides unique identification capabilities. All assets created as subclasses of `SerializedScriptableObject` automatically receive a persistent GUID upon creation.
+
+### Features
+
+- **Automatic GUID Assignment**: Each instance receives a unique GUID at creation time.
+- **Persistence**: GUIDs are serialized and persist across save/load cycles.
+- **Read-Only Access**: Access the GUID via the `GUID` property (read-only from code).
+- **GUID Lookup**: Find assets by their GUID using the built-in lookup functionality.
+
+### Example Usage
+
+```csharp
+// Inherit from SerializedScriptableObject
+public class MyAsset : SerializedScriptableObject
+{
+    public string Name;
+}
+
+// Access the GUID
+MyAsset asset = /* ... */;
+string guid = asset.GUID; // Get the unique identifier
+```

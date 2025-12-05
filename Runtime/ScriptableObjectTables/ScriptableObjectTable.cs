@@ -11,7 +11,7 @@ namespace ScriptableObjectTables
     public class ScriptableObjectTable : ScriptableObject
     {
         // The TypeReference attribute will be handled in a custom editor to use the above list
-        [Inherits(typeof(ScriptableObject), ShowAllTypes = true)]
+        [Inherits(typeof(SerializedScriptableObject), ShowAllTypes = true)]
         public TypeReference typeReference;
 
 #if UNITY_EDITOR
@@ -25,7 +25,23 @@ namespace ScriptableObjectTables
         /// <summary>
         /// Stores the list of objects inside the ScriptableObjectTable.
         /// </summary>
-        public List<ScriptableObject> entries = new();
+        public List<SerializedScriptableObject> entries = new();
+
+        /// <summary>
+        /// Finds an entry in the table by its GUID.
+        /// </summary>
+        /// <param name="guid">Unique identifier of the entry to find.</param>
+        public T Find<T>(string guid) where T : SerializedScriptableObject
+        {
+            foreach (var entry in entries)
+            {
+                if (entry.GUID.Equals(guid))
+                {
+                    return entry as T;
+                }
+            }
+            return null;
+        }
     }
 
 }
