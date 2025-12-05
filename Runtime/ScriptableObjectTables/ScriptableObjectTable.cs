@@ -5,10 +5,10 @@ using TypeReferences;
 using UnityEditor;
 #endif
 
-namespace ArcSheets
+namespace ScriptableObjectTables
 {
-    [CreateAssetMenu(fileName = "New ArcSheet", menuName = "Arcadian/ArcSheet")]
-    public class ArcSheet : ScriptableObject
+    [CreateAssetMenu(fileName = "New Scriptable Object Table", menuName = "Scriptable Object Tables/Scriptable Object Table")]
+    public class ScriptableObjectTable : ScriptableObject
     {
         // The TypeReference attribute will be handled in a custom editor to use the above list
         [Inherits(typeof(ScriptableObject), ShowAllTypes = true)]
@@ -17,13 +17,13 @@ namespace ArcSheets
 #if UNITY_EDITOR
         void OnEnable()
         {
-            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.arcadian.ArcSheets/Editor/Icons/icon.png");
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Packages/com.lucaswarwick02.scriptable-object-tables/Editor/Icons/icon.png");
             EditorGUIUtility.SetIconForObject(this, icon);
         }
 #endif
 
         /// <summary>
-        /// Stores the list of objects inside the ArcSheet.
+        /// Stores the list of objects inside the ScriptableObjectTable.
         /// </summary>
         public List<ScriptableObject> entries = new();
     }

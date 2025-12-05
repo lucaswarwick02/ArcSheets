@@ -2,17 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using ArcSheets;
+using ScriptableObjectTables;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
 /// <summary>
-/// Table view for rendering ArcSheet entries with proper column handling.
+/// Table view for rendering ScriptableObjectTable entries with proper column handling.
 /// </summary>
-public class ArcSheetTableView
+public class ScriptableObjectTableView
 {
-    private ArcSheet _sheet;
+    private ScriptableObjectTable _table;
     private List<ScriptableObject> _entries;
     private PropertyInfo[] _displayProperties;
     
@@ -27,17 +27,17 @@ public class ArcSheetTableView
     private bool _needsRebuild = true;
     
     /// <summary>Event invoked when data is modified.</summary>
-    public event System.Action onDirty;
+    public event Action onDirty;
 
     private const int BUTTON_WIDTH = 60;
     private const int CELL_PADDING = 5;
 
     /// <summary>
-    /// Initializes a new instance of the ArcSheetTableView.
+    /// Initializes a new instance of the ScriptableObjectTableView.
     /// </summary>
-    public ArcSheetTableView(ArcSheet sheet)
+    public ScriptableObjectTableView(ScriptableObjectTable table)
     {
-        _sheet = sheet;
+        _table = table;
         _entries = new List<ScriptableObject>();
         RefreshEntries();
         RefreshDisplayProperties();
@@ -46,15 +46,15 @@ public class ArcSheetTableView
 
     private void RefreshEntries()
     {
-        _entries = new List<ScriptableObject>(_sheet.entries.Where(e => e != null));
+        _entries = new List<ScriptableObject>(_table.entries.Where(e => e != null));
     }
 
     private void RefreshDisplayProperties()
     {
-        if (_sheet?.typeReference?.Type == null)
+        if (_table?.typeReference?.Type == null)
             return;
 
-        var allProperties = _sheet.typeReference.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        var allProperties = _table.typeReference.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         _displayProperties = allProperties.Where(p => p.Name != "name" && p.Name != "hideFlags").ToArray();
     }
 
@@ -68,19 +68,19 @@ public class ArcSheetTableView
 
     private void BuildColumns()
     {
-        var columns = new List<MultiColumnHeaderState.Column>();
-        
-        // Name column
-        columns.Add(new MultiColumnHeaderState.Column
+        var columns = new List<MultiColumnHeaderState.Column>
         {
-            headerContent = new GUIContent("Name"),
-            width = 150,
-            minWidth = 100,
-            autoResize = true,
-            allowToggleVisibility = false,
-            canSort = false,
-            headerTextAlignment = TextAlignment.Left,
-        });
+            // Name column
+            new() {
+                headerContent = new GUIContent("Name"),
+                width = 150,
+                minWidth = 100,
+                autoResize = true,
+                allowToggleVisibility = false,
+                canSort = false,
+                headerTextAlignment = TextAlignment.Left,
+            }
+        };
 
         // Property columns
         foreach (var prop in _displayProperties)
@@ -164,7 +164,7 @@ public class ArcSheetTableView
 
         // Draw scroll view with table rows
         Rect scrollViewRect = GUILayoutUtility.GetRect(0, rowWidth, 0, maxHeight);
-        Rect viewRect = new Rect(0, 0, rowWidth, sumHeight);
+        Rect viewRect = new(0, 0, rowWidth, sumHeight);
 
         _scrollPosition = GUI.BeginScrollView(
             position: scrollViewRect,
@@ -176,7 +176,7 @@ public class ArcSheetTableView
 
         for (int row = 0; row < _entries.Count; row++)
         {
-            Rect rowRect = new Rect(0, rowHeight * row, rowWidth, rowHeight);
+            Rect rowRect = new(0, rowHeight * row, rowWidth, rowHeight);
 
             // Draw alternating row background
             EditorGUI.DrawRect(rect: rowRect, color: row % 2 == 0 ? _darkerColor : _lighterColor);
@@ -229,9 +229,9 @@ public class ArcSheetTableView
             if (rowIndex > 0 && GUI.Button(upButtonRect, "↑"))
             {
                 // Swap with previous
-                _sheet.entries[rowIndex] = _sheet.entries[rowIndex - 1];
-                _sheet.entries[rowIndex - 1] = asset;
-                EditorUtility.SetDirty(_sheet);
+                _table.entries[rowIndex] = _table.entries[rowIndex - 1];
+                _table.entries[rowIndex - 1] = asset;
+                EditorUtility.SetDirty(_table);
                 onDirty?.Invoke();
                 Rebuild();
             }
@@ -240,9 +240,9 @@ public class ArcSheetTableView
             if (rowIndex < _entries.Count - 1 && GUI.Button(downButtonRect, "↓"))
             {
                 // Swap with next
-                _sheet.entries[rowIndex] = _sheet.entries[rowIndex + 1];
-                _sheet.entries[rowIndex + 1] = asset;
-                EditorUtility.SetDirty(_sheet);
+                _table.entries[rowIndex] = _table.entries[rowIndex + 1];
+                _table.entries[rowIndex + 1] = asset;
+                EditorUtility.SetDirty(_table);
                 onDirty?.Invoke();
                 Rebuild();
             }
@@ -256,9 +256,9 @@ public class ArcSheetTableView
             Rect cellRect = _multiColumnHeader.GetCellRect(visibleColIndex, rowRect);
             if (GUI.Button(cellRect, "Delete"))
             {
-                _sheet.entries.Remove(asset);
+                _table.entries.Remove(asset);
                 UnityEngine.Object.DestroyImmediate(asset, true);
-                EditorUtility.SetDirty(_sheet);
+                EditorUtility.SetDirty(_table);
                 onDirty?.Invoke();
                 Rebuild();
             }

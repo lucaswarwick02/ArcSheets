@@ -1,11 +1,13 @@
 {
-  "name": "com.arcadian.arcsheets",
+  "name": "com.lucaswarwick02.scriptable-object-tables",
   "version": "0.1.0",
-  "displayName": "ArcSheets",
-  "description": "Manage groups of Unity's ScriptableObject assets at once.",
+  "displayName": "Scriptable Object Tables",
+  "description": "Manage groups of Unity's ScriptableObject within a single window.",
   "keywords": [
     "unity",
-    "package"
+    "package",
+    "scriptable object",
+    "table"
   ],
   "scopedRegistries": [
     {

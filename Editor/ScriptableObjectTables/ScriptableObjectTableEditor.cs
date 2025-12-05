@@ -1,13 +1,13 @@
 using System;
 using System.Linq;
-using ArcSheets;
+using ScriptableObjectTables;
 using UnityEditor;
 
 /// <summary>
-/// Custom editor for ArcSheet ScriptableObject to handle type changes and entry management.
+/// Custom editor for ScriptableObjectTable ScriptableObject to handle type changes and entry management.
 /// </summary>
-[CustomEditor(typeof(ArcSheet))]
-public class ArcSheetEditor : UnityEditor.Editor
+[CustomEditor(typeof(ScriptableObjectTable))]
+public class ScriptableObjectTableEditor : UnityEditor.Editor
 {
     /// <summary>
     /// Override the inspector GUI to handle type changes and entry management.
@@ -18,7 +18,7 @@ public class ArcSheetEditor : UnityEditor.Editor
 
         var typeRefProp = serializedObject.FindProperty("typeReference");
 
-        var arcSheet = (ArcSheet)target;
+        var scriptableObjectTable = (ScriptableObjectTable)target;
 
         EditorGUI.BeginChangeCheck();
         EditorGUILayout.PropertyField(typeRefProp, true);
@@ -28,21 +28,21 @@ public class ArcSheetEditor : UnityEditor.Editor
             serializedObject.ApplyModifiedProperties();  // Get the new values
 
             // Grab new type, and current entries type
-            var newType = arcSheet.typeReference.Type;
+            var newType = scriptableObjectTable.typeReference.Type;
             Type oldType = null;
-            if (arcSheet.entries.Count > 0)
+            if (scriptableObjectTable.entries.Count > 0)
             {
-                oldType = arcSheet.entries[0].GetType();
+                oldType = scriptableObjectTable.entries[0].GetType();
             }
 
-            bool isChanged = arcSheet.entries.Count > 0 && newType != oldType;
+            bool isChanged = scriptableObjectTable.entries.Count > 0 && newType != oldType;
 
             if (isChanged)
             {
                 // Display confirmation message as changing type will delete all stored entries
                 bool confirmed = EditorUtility.DisplayDialog(
                     "Change Type?",
-                    $"Changing this sheet to '{newType}' (currently '{oldType}') will delete all ({arcSheet.entries.Count()}) entries. Are you sure?",
+                    $"Changing this table to '{newType}' (currently '{oldType}') will delete all ({scriptableObjectTable.entries.Count()}) entries. Are you sure?",
                     "Yes",
                     "Cancel"
                 );
@@ -50,19 +50,19 @@ public class ArcSheetEditor : UnityEditor.Editor
                 // Cancelled, so revert
                 if (!confirmed)
                 {
-                    arcSheet.typeReference.Type = oldType;
+                    scriptableObjectTable.typeReference.Type = oldType;
                     serializedObject.ApplyModifiedProperties();
                     return;
                 }
                 else
                 {
                     // Confirmed, so delete
-                    foreach(var entry in arcSheet.entries)
+                    foreach(var entry in scriptableObjectTable.entries)
                     {
                         DestroyImmediate(entry, true);
                         AssetDatabase.SaveAssets();
                     }
-                    arcSheet.entries.Clear();
+                    scriptableObjectTable.entries.Clear();
                 }
             }
 
