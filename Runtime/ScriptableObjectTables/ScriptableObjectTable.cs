@@ -5,7 +5,7 @@ using TypeReferences;
 using UnityEditor;
 #endif
 
-namespace ScriptableObjectTables
+namespace LucasWarwick02.ScriptableObjectTables
 {
     [CreateAssetMenu(fileName = "New Scriptable Object Table", menuName = "Scriptable Object Tables/Scriptable Object Table")]
     public class ScriptableObjectTable : ScriptableObject

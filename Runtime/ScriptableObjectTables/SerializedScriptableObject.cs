@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace ScriptableObjectTables
+namespace LucasWarwick02.ScriptableObjectTables
 {
     /// <summary>
     /// Wrapper around Unity's ScriptableObject to create a unique identifier.

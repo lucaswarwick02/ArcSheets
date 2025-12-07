@@ -1,4 +1,4 @@
-using ScriptableObjectTables;
+using LucasWarwick02.ScriptableObjectTables;
 using UnityEditor;
 
 /// <summary>
