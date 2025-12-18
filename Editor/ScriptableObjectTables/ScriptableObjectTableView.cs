@@ -55,7 +55,7 @@ public class ScriptableObjectTableView
             return;
 
         var allProperties = _table.typeReference.Type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        _displayProperties = allProperties.Where(p => p.Name != "name" && p.Name != "hideFlags").ToArray();
+        _displayProperties = allProperties.Where(p => p.Name != "name" && p.Name != "hideFlags" && p.Name != "GUID").ToArray();
     }
 
     /// <summary>
