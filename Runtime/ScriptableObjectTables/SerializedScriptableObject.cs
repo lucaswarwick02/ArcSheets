@@ -85,83 +85,67 @@ namespace LucasWarwick02.ScriptableObjectTables
 
         private static void ProcessRegistration(SerializedScriptableObject obj)
         {
-            // See if we already know about this object.
+            // 1. Check if we already have this specific instance tracked
             if (ObjectToString.TryGetValue(obj, out var existingId))
             {
                 if (obj.guid != existingId)
                 {
-                    // Logging an error since this will change this object's ID.
                     Debug.LogError($"Inconsistency: {obj.name} {obj.guid} / {existingId}");
                     obj.guid = existingId;
                 }
 
-                // Found object instance, ensure StringToObject contains.
-                if (StringToObject.ContainsKey(existingId))
+                if (StringToObject.ContainsKey(existingId)) return;
+
+                Debug.LogWarning("Inconsistent database tracking.");
+                StringToObject.Add(existingId, obj);
+                return;
+            }
+
+            // 2. Handle Empty GUIDs
+            if (string.IsNullOrEmpty(obj.guid))
+            {
+        #if UNITY_EDITOR
+                GenerateGuid(obj);
+                RegisterObject(obj);
+        #else
+                // In a build, an empty GUID is a critical data error
+                Debug.LogError($"Asset '{obj.name}' is missing a GUID in the build! Lookup will fail.");
+        #endif
+                return;
+            }
+
+            // 3. Handle Duplicate GUIDs
+            if (StringToObject.TryGetValue(obj.guid, out var knownObject))
+            {
+                if (knownObject == obj)
                 {
+                    Debug.LogWarning("Inconsistent database tracking.");
+                    ObjectToString.Add(obj, obj.guid);
                     return;
                 }
 
-                // DB inconsistency
-                Debug.LogWarning("Inconsistent database tracking.");
-                StringToObject.Add(existingId, obj);
+                if (knownObject == null)
+                {
+                    Debug.LogWarning("Object in DB got destroyed, replacing with current object.");
+                    RegisterObject(obj, true);
+                    return;
+                }
 
-                return;
-            }
-
-            // See if this object's GUID is empty. Easy case, create.
-            if (string.IsNullOrEmpty(obj.guid))
-            {
+                // We found a different object with the same ID
+        #if UNITY_EDITOR
+                // In Editor, we generate a new one to resolve the conflict (e.g., after a Ctrl+D)
                 GenerateGuid(obj);
-
                 RegisterObject(obj);
+        #else
+                // In a build, NEVER change the GUID. It's better to have a duplicate 
+                // than to have an ID that doesn't match your saved data.
+                Debug.LogWarning($"Duplicate GUID detected in build: {obj.guid} on {obj.name}. This usually means a prefab/asset was duplicated without the GUID being cleared in Editor.");
+                RegisterObject(obj, true); 
+        #endif
                 return;
             }
 
-            // Ensure we don't already have the GUID registered.
-            // If not, then we don't know about the object, nor the GUID, so just register.
-            if (!StringToObject.TryGetValue(obj.guid, out var knownObject))
-            {
-                // GUID not known to the DB, so just register it
-                RegisterObject(obj);
-                return;
-            }
-
-            // We DO know about the GUID, and it matches this object. Weird... just register it.
-            if (knownObject == obj)
-            {
-                // DB inconsistency
-                Debug.LogWarning("Inconsistent database tracking.");
-                ObjectToString.Add(obj, obj.guid);
-                return;
-            }
-
-            // We know about the GUID, but it isn't tied to any object. This object claims to
-            // be that GUID.... okay, register it.
-            if (knownObject == null)
-            {
-                // Object in DB got destroyed, replace with current object.
-                Debug.LogWarning("Unexpected registration problem.");
-                RegisterObject(obj, true);
-                return;
-            }
-
-            // Otherwise:
-            // 1) Object database did NOT contain this object.
-            // 2) We did find a different object with the SAME identifier.
-            // Thus, we have a duplicate.
-            //
-            // Through extensive testing, it appears the duplicated item will be updated.
-            // The original item will not have its hash updated. Save games referencing that
-            // hash should remain functional.
-            //
-            // Designers should never repurpose a checkpoint and expect it to not be
-            // already unlocked or otherwise referenced in production.
-            //
-
-            // Debug.Log($"Duplicate Detected: {obj.guid}");
-            GenerateGuid(obj);
-
-            // Register this new item.
+            // 4. Fresh registration
             RegisterObject(obj);
         }
 

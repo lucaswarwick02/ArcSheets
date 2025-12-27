@@ -32,7 +32,7 @@ namespace LucasWarwick02.ScriptableObjectTables
         /// </summary>
         /// <param name="guid">Unique identifier of the entry to find.</param>
         /// <exception cref="KeyNotFoundException">Thrown when the entry with the specified GUID is not found.</exception>
-        public T Find<T>(string guid) where T : SerializedScriptableObject
+        public T Find<T>(string guid, bool error = true) where T : SerializedScriptableObject
         {
             foreach (var entry in entries)
             {
@@ -41,7 +41,11 @@ namespace LucasWarwick02.ScriptableObjectTables
                     return entry as T;
                 }
             }
-            throw new KeyNotFoundException($"Entry with GUID '{guid}' not found in {name}");
+            if (error)
+            {
+                throw new KeyNotFoundException($"Entry with GUID '{guid}' not found in {name}");
+            }
+            return null;
         }
     }
 
