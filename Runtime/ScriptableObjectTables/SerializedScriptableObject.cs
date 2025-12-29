@@ -90,7 +90,7 @@ namespace LucasWarwick02.ScriptableObjectTables
             {
                 if (obj.guid != existingId)
                 {
-                    Debug.LogError($"Inconsistency: {obj.name} {obj.guid} / {existingId}");
+                    Debug.LogError($"Inconsistency: {obj.guid} / {existingId}");
                     obj.guid = existingId;
                 }
 
@@ -109,7 +109,7 @@ namespace LucasWarwick02.ScriptableObjectTables
                 RegisterObject(obj);
         #else
                 // In a build, an empty GUID is a critical data error
-                Debug.LogError($"Asset '{obj.name}' is missing a GUID in the build! Lookup will fail.");
+                Debug.LogError($"An asset is missing a GUID in the build! Lookup will fail.");
         #endif
                 return;
             }
@@ -139,7 +139,7 @@ namespace LucasWarwick02.ScriptableObjectTables
         #else
                 // In a build, NEVER change the GUID. It's better to have a duplicate 
                 // than to have an ID that doesn't match your saved data.
-                Debug.LogWarning($"Duplicate GUID detected in build: {obj.guid} on {obj.name}. This usually means a prefab/asset was duplicated without the GUID being cleared in Editor.");
+                Debug.LogWarning($"Duplicate GUID detected in build: {obj.guid}. This usually means a prefab/asset was duplicated without the GUID being cleared in Editor.");
                 RegisterObject(obj, true); 
         #endif
                 return;
